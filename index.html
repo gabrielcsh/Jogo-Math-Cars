@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Jogo</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="jogo.css">
+</head>
+<body onkeydown="tecladoPressionado(event);" onclick="escondeTelaInicial();">
+	<div id="jogo">	    
+	    <!-- INTERFCE DE PERGUNTAS MATEMÁTICAS -->
+	    <div id="elementos">
+	      <img id="fundo" src="imagens/fundo.png" style="position: absolute; top:0px; left: 0px;">
+	      <form id="form" method="POST">
+	        <!--  -->
+	        <input type="text" id="nivelTexto" value="Nível:">
+	        <input type="number" id="nivel" readonly>
+	        <input type="number" id="numero1" readonly>
+	        <input type="text" id="operador" readonly>
+	        <input type="number" id="numero2" readonly>
+	        <input type="text" id="igual" value="=" readonly>
+	        <input type="number" max="100" id="resposta" autofocus="autofocus"> 
+	        <!-- NUMEROS VIRTUAIS -->
+	        <input type="button" id="num1" value="1" onclick="setaNumero('1')">  
+			<input type="button" id="num2" value="2" onclick="setaNumero('2')">  
+			<input type="button" id="num3" value="3" onclick="setaNumero('3')"> 
+			<input type="button" id="num4" value="4" onclick="setaNumero('4')">  
+			<input type="button" id="num5" value="5" onclick="setaNumero('5')">  
+			<input type="button" id="num6" value="6" onclick="setaNumero('6')"> 
+			<input type="button" id="num7" value="7" onclick="setaNumero('7')">  
+			<input type="button" id="num8" value="8" onclick="setaNumero('8')">  
+			<input type="button" id="num9" value="9" onclick="setaNumero('9')">
+			<input type="button" id="apagar" value="◄" onclick="document.getElementById('resposta').value = ''">
+			<input type="button" id="num0" value="0" onclick="setaNumero('0')">  
+			<input type="button" id="enviar" value="►" onclick="verificaResposta(); document.getElementById('form').reset(); atualizaConta();">  
+
+	      </form>
+	    </div>
+	    <!-- IMAGENS -->
+	    <div id="imagens">
+	      <img id="chegada1" src="imagens/chegada.png">
+	      <img id="pista1" src="imagens/pista.png">
+	      <img id="carro1" src="imagens/black.png">
+	      <img id="chegada2" src="imagens/chegada.png">
+	      <img id="pista2" src="imagens/pista.png">
+	      <img id="carro2" src="imagens/yellow.png">
+	      <img id="pause" src="imagens/pause.png" onclick="pause();">
+	    </div>
+
+	    <!-- ESCOLHA DE COR DOS CARROS -->
+	    <div id="carros">
+	    	<img id="red" src="imagens/red.png" onclick="setaCarros('red')">
+	    	<img id="black" src="imagens/black.png" onclick="setaCarros('black')">
+	    	<img id="yellow" src="imagens/yellow.png" onclick="setaCarros('yellow')">
+	    	<img id="pink" src="imagens/pink.png" onclick="setaCarros('pink')">
+	    	<img id="green" src="imagens/green.png" onclick="setaCarros('green')">
+	    	<img id="blue" src="imagens/blue.png" onclick="setaCarros('blue')">
+	    	<form>
+	    		<input type="button" class="botao" value="INICIAR" onclick="play()">
+	    	</form>
+	    </div>
+
+	    <!-- MENSAGENS -->
+	    <div id="avisos">
+	      <span id="aviso1"><b>INSTRUÇÕES</b><br/>Resolva as contas para movimentar seu carro e ganhar a corrida<br>Você pode usar o mouse ou o teclado para selecionar os numeros<br>ENTER: Envia a resposta<br>P: Pausa o jogo<br><b>Selecione seu carro e pressione espaço ou clique em iniciar</b></span> 
+	      <span id="aviso2" onclick="play()">Você passou de nível!!!! Pressione espaço ou clique para continar</span> 
+	      <span id="aviso3" onclick="play()">Você foi derrotado!!!! Selecione seu carro pressione espaço ou clique para jogar novamente</span> 
+	      <span id="aviso4" onclick="play()">Jogo pausado!!!! Pressione espaço ou clique para voltar a jogar</span>
+	    </div>
+	</div>
+	<div id="inicio">
+	    <img id="fundo" src="imagens/telaInicial.png" style="position: absolute; top:0px; left: 0px;">
+	    <span id="textoInicio">Pressione Enter ou clique</span>
+	</div>
+</body>
+
+  <script>
+	  var carros = new Array("red","black","yellow","pink","green","blue")
+	  var operadores = new Array('+','-','/','*');
+	  iniciado = false; //Indica se o jogo já foi iniciado
+	  stop = true; //Variável de controle dos carros, true = carros não andam, false = carros em movimento
+	  var nivel = 1;
+	  var topCarro1 = 520;
+	  var topCarro2 = 520;
+	  var dificuldade = 5000; //Tempo em milissegundos do movimento do carro adversário 
+	  var intervalo = null;
+	  var posicaoAnterior =  1;
+	  var anterior = carros[posicaoAnterior]; //Variavel que define carro selecionado
+	  var avisosNaTela = true;
+
+	function play(){
+		if(avisosNaTela){
+		  	stop = false;
+		  	escondeAvisos();
+			atualizaConta();
+			if(!iniciado){
+				movimentoAdversario();
+				iniciado = true;
+			}
+		}
+	}
+
+	function pause(){
+		if(!stop){
+			stop = true;
+	    	mostraAviso("4");
+		} else{
+			stop = false
+			escondeAvisos(); 
+		}
+	}
+	  
+	function atualizaConta(){
+	    //Atualiza input "nivel"
+	    document.getElementById("nivel").value = nivel;
+	    
+	    //Gera operador e números aleatórios
+	    document.getElementById("numero1").value = novosNumeros();
+	    document.getElementById("operador").value = novoOperador();
+	    document.getElementById("numero2").value = novosNumeros();
+
+	    var numero1 = document.getElementById("numero1").value;
+	    var numero2 = document.getElementById("numero2").value;
+
+	    if(document.getElementById("operador").value == '/'){
+	     	//Quando a operação for divisão o primeiro numero deve ser divisível pelo segundo, que ainda deve ser diferente de 0
+	      	while(((numero1 % numero2) != 0) || numero2 == 0){
+	        	numero2 = novosNumeros();
+	      	}
+	    }	
+	    else if(document.getElementById("operador").value == '-'){
+	    	//Evita com que o resultado seja negativo
+	    	while((numero1 - numero2) < 0){
+	    		numero2 = novosNumeros();
+	    	}
+	  	}
+	  	document.getElementById("numero2").value = numero2;
+	}
+
+	function setaCarros(cor){
+	  	//Volta o fundo do carro selecionado anteriormente
+	  	document.getElementById(anterior).style.backgroundColor = "lightCoral"; 
+
+	  	//Define o caminho, atribui a imagem do carro ao elemento e deixa a div "selecionada" mudando a cor do background
+	  	caminho = "imagens/" + cor + ".png"
+	  	document.getElementById("carro1").src = "imagens/" + cor + ".png";
+	  	document.getElementById(cor).style.backgroundColor = "brown"; 
+
+	  	//Guarda o carro selecionado anteriormente
+	  	anterior = cor;
+	  }
+
+	  function novosNumeros() {
+	  	//Gera e retorna um número aleatória de 0 a 10
+	    min = Math.ceil(0);
+	    max = Math.floor(11);
+	    return Math.floor(Math.random() * (max - min)) + min;
+	  }
+
+	  function novoOperador(){
+	  	//Gera um numero aleatório de 0 a 3 que servirá de indicador para uma das posições do Array "operadores"
+	    min = Math.ceil(0);
+	    max = Math.floor(4);
+	    posicao = Math.floor(Math.random() * (max - min)) + min;
+	    return operadores[posicao];
+	  }
+
+	function enviaResposta(){
+	  	if(!stop){
+	       	verificaResposta();
+	        document.getElementById("form").reset();
+	        atualizaConta();
+	    }
+	}
+
+	  function verificaResposta(){
+	  	//Pega valores atuais dos inputs
+	    var operador = document.getElementById("operador").value;
+	    var numero1 = parseInt(document.getElementById("numero1").value);
+	    var numero2 = parseInt(document.getElementById("numero2").value);
+	    
+	    //Verifica o operador e qual operação deve ser feita
+	    if(operador == '+'){
+	      resultado = numero1 + numero2;
+	    }
+	    else if(operador == '-'){
+	      resultado = numero1 - numero2;
+	    }
+	    else if(operador == '/'){
+	        resultado = numero1 / numero2;
+	    }
+	    else{
+	      resultado = numero1 * numero2;
+	    }
+
+	    //Verifica se a resposta dada está correta
+	    if(resultado == document.getElementById("resposta").value){
+	      movimentaCarro1();
+	    }
+
+	    else{
+	      //Caso incorreta e o carro não esteja na posição inicial, ele voltará uma posição
+	      if(topCarro1 < 490){
+	        topCarro1 = topCarro1 + 30;
+	        document.getElementById("carro1").style.top = topCarro1 + 30 + "px";
+	      }
+	    }
+	  }
+
+	function tecladoPressionado(event) {
+	  	//Foca o input de resposta e permite a escrita nele
+	  	document.getElementById("resposta").focus();
+	  	document.getElementById("resposta").readOnly = false;
+	    
+	    // 13 == TECLA ENTER
+	    if (event.keyCode == 13) {
+	      	escondeTelaInicial();
+	      	enviaResposta();
+	      	//Prevenção de que o formulário não será enviado
+	        event.preventDefault();
+	    }
+
+	    // 32 == TECLA ESPAÇO
+	    else if(event.keyCode == 32){
+	    	//Verifica se o usuário já passou pela tela inicial
+			play();
+			event.preventDefault();
+	    }
+
+	    // 112 == TECLA P 
+	    else if (event.keyCode == 80){
+	    	pause();
+	    }
+
+	    // 37 == SETA ESQUERDA
+	    else if (event.keyCode == 37){
+	    	//SELECIONAR CARRO COM A SETA ESQUERDA
+	    	if(posicaoAnterior > 0){
+	    		posicaoAnterior = posicaoAnterior - 1;
+	    		setaCarros(carros[posicaoAnterior]);
+	    	} else {
+	    		posicaoAnterior = 5;
+	    		setaCarros(carros[posicaoAnterior]);
+	    	}
+	      event.preventDefault();
+	    }
+
+	    // 39 == SETA DIREITA
+	    else if (event.keyCode == 39){
+	    	//SELECIONAR CARRO COM A SETA DIREITA
+	    	if(posicaoAnterior < 5){
+	    		posicaoAnterior = posicaoAnterior + 1;
+	    		setaCarros(carros[posicaoAnterior]);
+	    	} else {
+	    		posicaoAnterior = 0;
+	    		setaCarros(carros[posicaoAnterior]);
+	    	}
+	      event.preventDefault();
+	    }
+
+	    // 8 == backspace
+	    else if(event.keyCode == 8){
+	    	document.getElementById("resposta").value = '';
+	    	event.preventDefault;
+	    }
+	  }
+
+	  function setaNumero(numero){
+	  	var resposta = document.getElementById("resposta").value; 
+    	resposta = resposta + numero; 
+   		document.getElementById("resposta").value = resposta;
+	  }
+
+	  function movimentoAdversario() {
+	  	//Movimenta o carro adversário caso não esteja na chegada e reinicia jogo caso ele chegue
+	    intervalo = setInterval(function(){
+	      if(topCarro2 > 10 && !stop){
+	      	//alert(dificuldade);
+	        topCarro2 = topCarro2 - 30;
+	        document.getElementById("carro2").style.top = topCarro2 + "px";
+	      }
+	      else{
+	        if(!stop){
+	        	//Reseta todo o jogo caso o adversário vença
+	         	mostraAviso("3");
+	          	voltaCarros();
+	          	document.getElementById("carros").style.display = "block";
+	          	dificuldade = 5000;
+	          	clearInterval(intervalo);
+	          	movimentoAdversario();
+	          	stop = true;
+	        }
+	      }
+	    }, dificuldade); //Variável que indica o intervalo de cada movimento do adversário
+	  }
+
+	  function novoNivel() {
+	  	//Atualiza input de nível
+	    nivel = nivel + 1;
+	    document.getElementById("nivel").value = nivel;
+
+	    //Atualiza dificuldade(tempo de movimento adversário) 
+	    dificuldade = dificuldade * 0.8;
+	    clearInterval(intervalo);
+	    movimentoAdversario();
+	  }
+
+	  function movimentaCarro1(){
+	  	//Se o carro não estiver na chegada, sobe uma posição (30 pixels)
+	    if(topCarro1 > 10){
+	      topCarro1 = topCarro1 - 30;
+	      document.getElementById("carro1").style.top = topCarro1 + "px";
+	    }
+	    //Quando o carro estiver chegando ao destino 
+	    else { 
+	      topCarro1 = topCarro1 - 30;
+	      document.getElementById("carro1").style.top = topCarro1 + "px";
+	      novoNivel();
+	      voltaCarros();
+	      mostraAviso("2");
+	      stop = true;
+	    }
+	  }
+	  function mostraAviso(numeroDoAviso){
+	  	avisosNaTela = true;
+	    document.getElementById("aviso"+numeroDoAviso).style.display = "block";
+	  }
+	  function escondeAvisos(){
+	  	if(avisosNaTela){
+		    quantidadeDeAvisos = 4;
+		    //Esconde todos os avisos em uma chamada da função
+		    document.getElementById("carros").style.display = "none";
+		    for(i=1;i<=quantidadeDeAvisos;i++){
+		      document.getElementById("aviso"+i).style.display = "none";
+		    }
+		    avisosNaTela = false;
+		}
+	  }
+	  function escondeTelaInicial(){
+	  	//Deixa as imagens iniciais invíveis os demais elementos visíveis (não estavam visíveis para um melhor carregamento da página, pois o fundo é carregado com um certo delay)
+	  	if(document.getElementById("inicio").style.display != "none"){
+	  		document.getElementById("inicio").style.display = "none";
+	  		document.getElementById("jogo").style.display = "block";
+	  	}
+	  }
+	  function voltaCarros(){
+	  	//Volta as variáveis e os elementos utilizados para o "top" inicial
+	    topCarro1 = 520;
+	    topCarro2 = 520;
+	    document.getElementById("carro1").style.top = topCarro1 + "px";
+	    document.getElementById("carro2").style.top = topCarro2 + "px";
+	    document.getElementById("resposta").readOnly = true;
+	  }
+  </script>
+</html>
